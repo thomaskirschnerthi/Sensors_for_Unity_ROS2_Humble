@@ -10,8 +10,10 @@ Am Besten auch noch ROS2ForUnity von Robotec in den Assets Ordner einbinden
 ### In ROS2 Humble
 Kamerabild Ordner in src kopieren
 
+'''
 colcon build
 source install/setup.bash
 ros2 run Kamerabild lidar1
+'''
 
 zum Visualisieren in rviz2 die RVIZ-Datei öffnen.
