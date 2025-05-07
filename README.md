@@ -3,9 +3,9 @@
 
 
 
-### Wie die Klassen verwenden?
-Lidar2dSensorRos und ROS2DLidar müssen auf ein Objekt oder leeres Objekt welches als Sensor dienen sollen in ROS gezogen werden.
-Am Besten auch noch ROS2ForUnity von Robotec in den Assets Ordner einbinden
+### Wie die C# Klassen verwenden? In Unity
+Lidar2dSensorRos und ROS2DLidar müssen auf ein Objekt oder leeres Objekt welches als Sensor dienen sollen in Unity gezogen werden.
+Am Besten auch noch ROS2ForUnity von Robotec in den Assets Ordner einbinden.
 
 ### In ROS2 Humble
 Kamerabild Ordner in ```src``` in den ROS2 Humble Workspace kopieren
