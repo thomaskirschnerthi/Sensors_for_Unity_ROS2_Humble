@@ -4,7 +4,7 @@
 
 
 ### Wie die C# Klassen verwenden? In Unity
-Lidar2dSensorRos und ROS2DLidar müssen auf ein Objekt oder leeres Objekt welches als Sensor dienen sollen in Unity gezogen werden.
+Lidar2dSensorRos und ROSVerbindungLidar müssen auf ein Objekt oder leeres Objekt welches als Sensor dienen sollen in Unity gezogen werden.
 Am Besten auch noch ROS2ForUnity von Robotec in den Assets Ordner einbinden.
 
 ### In ROS2 Humble
