@@ -8,7 +8,7 @@
 Am Besten auch noch [ROS2_for_Unity](https://github.com/RobotecAI/ros2-for-unity) von Robotec in den Assets Ordner einbinden.
 
 ### In ROS2 Humble
-[Kamerabild](./Kamerabild/) Ordner in ```src``` in den ROS2 Humble Workspace kopieren
+[Kamerabild](./) Ordner in ```src``` in den ROS2 Humble Workspace kopieren
 
 ```
 colcon build
