@@ -33,29 +33,7 @@ public class Lidar2DSensorROS : MonoBehaviour
     {
         udpClient = new UdpClient();
         udpClient.Connect("127.0.0.1", 5005); // IP des ROS-PCs
-        //Application.targetFrameRate = 240;
-
-        //StartCoroutine(LidarLoop());         das wäre der alternativweg
     }
-
-    private IEnumerator LidarLoop()
-{
-    float angleStepLocal = angleStep;  // sicherstellen, dass Zwischenschritte exakt laufen
-    float scanAngle = 0f;
-
-    WaitForSecondsRealtime wait = new WaitForSecondsRealtime(0.0002f); // 5000 Hz
-
-    while (true)
-    {
-        MeasureAndSend(scanAngle);
-        scanAngle += angleStepLocal;
-        if (scanAngle >= 360f) scanAngle -= 360f;
-
-        yield return wait;
-    }
-}
-
-
 
     void Update()
     {
@@ -78,7 +56,7 @@ public class Lidar2DSensorROS : MonoBehaviour
     void MeasureAndSend(float angleDeg)
     {
         Vector3 origin = transform.position;
-        Quaternion localRotation = Quaternion.Euler(0f, angleDeg, 0f);
+        Quaternion localRotation = Quaternion.Euler(0f, -angleDeg, 0f);
         Vector3 localDirection = localRotation * Vector3.forward;
         Vector3 worldDirection = transform.TransformDirection(localDirection);
 
@@ -102,7 +80,6 @@ public class Lidar2DSensorROS : MonoBehaviour
             udpClient.Send(bytes, bytes.Length);
             batchData.Clear();
         }
-
 
         Debug.DrawLine(origin, origin + worldDirection * range, Color.green, 0.05f);
 
