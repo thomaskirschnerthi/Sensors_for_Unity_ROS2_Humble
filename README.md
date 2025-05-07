@@ -8,12 +8,12 @@ Lidar2dSensorRos und ROS2DLidar müssen auf ein Objekt oder leeres Objekt welche
 Am Besten auch noch ROS2ForUnity von Robotec in den Assets Ordner einbinden
 
 ### In ROS2 Humble
-Kamerabild Ordner in src kopieren
+Kamerabild Ordner in ```src``` in den ROS2 Humble Workspace kopieren
 
-'''
+```
 colcon build
 source install/setup.bash
 ros2 run Kamerabild lidar1
-'''
+```
 
-zum Visualisieren in rviz2 die RVIZ-Datei öffnen.
+zum Visualisieren in ```rviz2``` die RVIZ-Datei öffnen.
