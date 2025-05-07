@@ -41,7 +41,9 @@ public class RosLidarPublisher : MonoBehaviour
     // Hier wird jeder neue Messwert direkt gesendet
     void HandleRay(float angleDeg, float range)
     {
-        Debug.Log($"Empfangene Messung: Winkel={angleDeg}, Reichweite={range}");
+        if(range < 10){
+            Debug.Log($"Empfangene Messung: Winkel={angleDeg}, Reichweite={range}");
+        }
         SendMeasurementAsText(angleDeg, range);
     }
 
@@ -55,7 +57,7 @@ public class RosLidarPublisher : MonoBehaviour
         udpClient.Send(bytes, bytes.Length, rosIp, rosPort);
 
         // In der Unity-Konsole anzeigen, welche Daten gesendet werden
-        Debug.Log($"[ROS-Text] Einzelne Messung (Text) gesendet: {textData}");
+       // Debug.Log($"[ROS-Text] Einzelne Messung (Text) gesendet: {textData}");
     }
 
     void OnDestroy()

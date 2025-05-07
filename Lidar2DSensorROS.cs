@@ -4,12 +4,15 @@ using System.Text;
 using System.Globalization;
 using System.Collections;
 using System.Collections.Generic;
+using System.Net;
 
 
 /// <summary>
 /// Simuliert kontinuierliche 2D-LiDAR-Daten (XZ-Ebene, Rotation um lokale Y-Achse).
 /// Sendet bei 360* eine UDP-Nachricht im Format: "Winkel,Reichweite\n"
 /// </summary>
+/// 
+/// //detection layer muss default sein in Unity
 public class Lidar2DSensorROS : MonoBehaviour
 {
     [Header("Sensor-Einstellungen")]
@@ -88,22 +91,18 @@ public class Lidar2DSensorROS : MonoBehaviour
 
     	// Statt direkter UDP-Sendung:
     	string data = $"{angleDeg:F1},{range:F3}";
-        Debug.Log($"Gesendeter Winkel: {angleDeg:F2}°");
+        Debug.Log($"Gesendete Strecke: {range:F3}°");
     	batchData.Add(data);
 
-    	// Bei vollständiger Umdrehung senden
-    	if (angleDeg >= 360f - angleStep)
-    	{
-        	string combinedData = string.Join("\n", batchData) + "\n";
-        	byte[] bytes = Encoding.ASCII.GetBytes(combinedData);
-            
-            IPEndPoint rosEndpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 5005);
-            udpClient.Send(bytes, bytes.Length, rosEndpoint);
-        	
-            
-            //udpClient.Send(bytes, bytes.Length);
-        	batchData.Clear();
-    	}
+;
+        if (batchData.Count >= 500)
+        {
+            string combinedData = string.Join("\n", batchData) + "\n";
+            byte[] bytes = Encoding.ASCII.GetBytes(combinedData);
+            udpClient.Send(bytes, bytes.Length);
+            batchData.Clear();
+        }
+
 
         Debug.DrawLine(origin, origin + worldDirection * range, Color.green, 0.05f);
 
