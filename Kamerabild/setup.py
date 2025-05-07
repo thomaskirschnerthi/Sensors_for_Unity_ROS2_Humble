@@ -21,7 +21,8 @@ setup(
     entry_points={
         'console_scripts': [
         'kamerabild1 = Kamerabild.kamerabild1:main',
-        'lidar1 = Kamerabild.lidar1:main'
+        'lidar1 = Kamerabild.lidar1:main',
+        'testScan = Kamerabild.testScan:main'
         ],
     },
 )
