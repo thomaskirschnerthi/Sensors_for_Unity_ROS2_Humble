@@ -9,7 +9,7 @@ Diesem leeren Objekt gehören nun einige Objekte zugeordnet (im Inspector rechts
 Wichtig: Es müssen zwei unterschiedliche Kameras sein, sonst funktioniert das System nicht.
 	 Zudem müssen Parameter wie z.B. Blickfeld selbst eingestellt werden...
 		 
-	 Dem DepthMaterial muss DepthMT zugewiesen werden
+Dem DepthMaterial muss DepthMT zugewiesen werden
 
 
 
