@@ -19,7 +19,7 @@ public class Lidar2DSensorROS : MonoBehaviour
     public float rotationSpeed = 3600f;
     public float angleStep = 0.72f;
     public float maxRange = 10f;
-    public LayerMask detectionLayers;
+    public LayerMask detectionLayers = ~0;
 
     public delegate void OnRayMeasured(float angleDeg, float range);
     public event OnRayMeasured OnMeasurement;
