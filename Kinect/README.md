@@ -24,3 +24,6 @@ ros2 run kinect_unity_empfaenger kin_empfaenger
 ``` 
 
 Zum Visualisieren in ```rviz2``` die Datei [kinect1_rviz](kinect1_rviz.rviz)
+
+
+### Für ein fertiges Unity Projekt oder zum überprüfen der Einstellungen den Ordner 'Lichteinstellungen' in Unity öffnen
