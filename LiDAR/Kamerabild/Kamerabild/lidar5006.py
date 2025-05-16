@@ -1,3 +1,6 @@
+# Konfigurierbarer Port (nur hier ändern!)
+UDP_PORT = 5006  
+
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
@@ -6,18 +9,20 @@ import threading
 import queue
 import math
 
-# Thread-sicherer Queue-Puffer
 incoming_text = queue.Queue()
 
+
 class LidarScanNode(Node):
-    def __init__(self):
+    def __init__(self, topic_name):
         super().__init__('lidar_scan_node')
-        self.publisher = self.create_publisher(LaserScan, 'scan', 10)
+        self.publisher = self.create_publisher(LaserScan, topic_name, 10)
         self.timer = self.create_timer(0.05, self.publish_scan)
 
-        self.ranges = [float('inf')] * 500  # 500 Punkte wegen 0.72°
+        self.ranges = [float('inf')] * 500
         self.received = set()
         self.last_publish_time = self.get_clock().now()
+
+        self.get_logger().info(f"Publisher gestartet auf Topic: {topic_name}")
 
     def publish_scan(self):
         while not incoming_text.empty():
@@ -27,11 +32,6 @@ class LidarScanNode(Node):
                 angle_deg = float(angle_str)
                 range_val = float(range_str)
                 angle_index = int(angle_deg / 0.72) % 500
-
-                # Debug-Ausgabe
-                self.get_logger().debug(f"Empfangen: {angle_deg:.1f}° → {range_val:.2f} m → Index {angle_index}")
-
-                # Speichern
                 self.ranges[angle_index] = range_val
                 self.received.add(angle_index)
             except ValueError:
@@ -41,17 +41,15 @@ class LidarScanNode(Node):
         now = self.get_clock().now()
         now_sec = now.nanoseconds * 1e-9
         last_sec = self.last_publish_time.nanoseconds * 1e-9
-        time_diff = now_sec - last_sec
 
-        if time_diff >= 0.1:
+        if now_sec - last_sec >= 0.1:
             if all(math.isinf(r) for r in self.ranges):
-                self.get_logger().warn("Kein einziger gültiger Messwert empfangen — Scan übersprungen.")
+                self.get_logger().warn("Kein gültiger Messwert – Scan übersprungen.")
                 return
 
             msg = LaserScan()
             msg.header.stamp = now.to_msg()
             msg.header.frame_id = 'base_link'
-
             msg.angle_min = 0.0
             msg.angle_max = 2 * math.pi
             msg.angle_increment = math.radians(0.72)
@@ -62,17 +60,17 @@ class LidarScanNode(Node):
             msg.ranges = self.ranges.copy()
 
             self.publisher.publish(msg)
-            self.get_logger().info(f"Scan veröffentlicht (Messpunkte: {len(self.received)}) Messwert: {self.ranges}")
+            self.get_logger().info(f"Scan veröffentlicht (Punkte: {len(self.received)})")
 
             self.ranges = [float('inf')] * 500
             self.received.clear()
             self.last_publish_time = now
 
 
-def udp_listener():
+def udp_listener(port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind(("0.0.0.0", 5005))
-    print("[ROS2] Warte auf UDP-Daten von Unity...")
+    sock.bind(("0.0.0.0", port))
+    print(f"[ROS2] Warte auf UDP-Daten auf Port {port}...")
 
     while True:
         data, _ = sock.recvfrom(65536)
@@ -82,9 +80,11 @@ def udp_listener():
 
 
 def main(args=None):
+    topic_name = f"scan_{UDP_PORT}"
+
     rclpy.init(args=args)
-    threading.Thread(target=udp_listener, daemon=True).start()
-    node = LidarScanNode()
+    threading.Thread(target=udp_listener, args=(UDP_PORT,), daemon=True).start()
+    node = LidarScanNode(topic_name)
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
@@ -92,3 +92,4 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
+

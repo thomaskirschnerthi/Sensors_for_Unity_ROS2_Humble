@@ -22,7 +22,8 @@ setup(
         'console_scripts': [
         'kamerabild1 = Kamerabild.kamerabild1:main',
         'lidar1 = Kamerabild.lidar1:main',
-        'testScan = Kamerabild.testScan:main'
+        'testScan = Kamerabild.testScan:main',
+        'lidar5006 = Kamerabild.lidar5006:main'
         ],
     },
 )
