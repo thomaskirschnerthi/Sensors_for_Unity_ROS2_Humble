@@ -6,7 +6,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Net;
 
-
 /// <summary>
 /// Simuliert kontinuierliche 2D-LiDAR-Daten (XZ-Ebene, Rotation um lokale Y-Achse).
 /// Sendet bei 360* eine UDP-Nachricht im Format: "Winkel,Reichweite\n"
@@ -21,6 +20,10 @@ public class Lidar2DSensorROS : MonoBehaviour
     public float maxRange = 10f;
     public LayerMask detectionLayers = ~0;
 
+    [Header("ROS TCP-Ziel")]
+    public string rosIp = "127.0.0.1";
+    public int Port;
+
     public delegate void OnRayMeasured(float angleDeg, float range);
     public event OnRayMeasured OnMeasurement;
 
@@ -32,14 +35,43 @@ public class Lidar2DSensorROS : MonoBehaviour
     void Start()
     {
         udpClient = new UdpClient();
-        udpClient.Connect("127.0.0.1", 5005); // IP des ROS-PCs
+
+        try
+        {
+            udpClient.Connect(rosIp, Port); // IP des ROS-PCs
+        }
+        catch (SocketException)
+        {
+            Debug.LogWarning($"Port {Port} inaktiv oder nicht erreichbar.");
+            // Optional: udpClient = null;  // falls gewünscht, um später zu prüfen
+        }
+
+        //Application.targetFrameRate = 240;
+        //StartCoroutine(LidarLoop());         
+    }
+
+    private IEnumerator LidarLoop()
+    {
+        float angleStepLocal = angleStep;  // sicherstellen, dass Zwischenschritte exakt laufen
+        float scanAngle = 0f;
+
+        WaitForSecondsRealtime wait = new WaitForSecondsRealtime(0.0002f); // 5000 Hz
+
+        while (true)
+        {
+            MeasureAndSend(scanAngle);
+            scanAngle += angleStepLocal;
+            if (scanAngle >= 360f) scanAngle -= 360f;
+
+            yield return wait;
+        }
     }
 
     void Update()
     {
-  	//float deltaRotation = rotationSpeed * Time.deltaTime;
-  	float deltaRotation = 5000 * 0.72f * Time.deltaTime;  // 5000 Hz * 0,72°
-        Debug.Log($"Frame Time: {Time.deltaTime:F4} s");
+        //float deltaRotation = rotationSpeed * Time.deltaTime;
+        float deltaRotation = 5000 * 0.72f * Time.deltaTime;  // 5000 Hz * 0,72°
+        // Debug.Log($"Frame Time: {Time.deltaTime:F4} s");
         accumulatedRotation += deltaRotation;
 
         while (accumulatedRotation >= angleStep)
@@ -51,10 +83,11 @@ public class Lidar2DSensorROS : MonoBehaviour
         }
     }
 
-
-
     void MeasureAndSend(float angleDeg)
     {
+        if (udpClient == null)
+            return; // Kein UDP-Client verfügbar, Daten nicht senden
+
         Vector3 origin = transform.position;
         Quaternion localRotation = Quaternion.Euler(0f, -angleDeg, 0f);
         Vector3 localDirection = localRotation * Vector3.forward;
@@ -67,12 +100,9 @@ public class Lidar2DSensorROS : MonoBehaviour
             range = hit.distance;
         }
 
-    	// Statt direkter UDP-Sendung:
-    	string data = $"{angleDeg:F1},{range:F3}";
-        Debug.Log($"Gesendete Strecke: {range:F3}°");
-    	batchData.Add(data);
+        string data = $"{angleDeg:F1},{range:F3}";
+        batchData.Add(data);
 
-;
         if (batchData.Count >= 500)
         {
             string combinedData = string.Join("\n", batchData) + "\n";
@@ -83,12 +113,14 @@ public class Lidar2DSensorROS : MonoBehaviour
 
         Debug.DrawLine(origin, origin + worldDirection * range, Color.green, 0.05f);
 
-        // Hier wird das Event ausgelöst
         OnMeasurement?.Invoke(angleDeg, range);
     }
 
     void OnApplicationQuit()
     {
-        udpClient.Close();
+        if (udpClient != null)
+        {
+            udpClient.Close();
+        }
     }
 }
