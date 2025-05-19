@@ -22,26 +22,5 @@ def generate_launch_description():
                 {'depth_port': 5009},
                 {'rgb_port': 5010},
             ]
-        ),
-        
-        Node(
-            package='kinect',
-            executable='kinect_receiver',
-            name='kinect3',
-            parameters=[
-                {'kinect_id': 'kinect3'},
-                {'depth_port': 5011},
-                {'rgb_port': 5012},
-            ]
-        ),
-        Node(
-            package='kinect',
-            executable='kinect_receiver',
-            name='kinect4',
-            parameters=[
-                {'kinect_id': 'kinect4'},
-                {'depth_port': 5013},
-                {'rgb_port': 5014},
-            ]
         )
     ])
