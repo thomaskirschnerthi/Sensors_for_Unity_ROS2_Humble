@@ -27,21 +27,21 @@ public class Rollstuhl : MonoBehaviour
 
         // Prüfen, ob die Bedingungen für Bewegung / Drehung erfüllt sind
 
-        // Vorwärts: GetShouldRotate0 bis 3 müssen alle true sein
-        bool canMoveForward = rosListener.GetShouldRotate0() && rosListener.GetShouldRotate1() &&
-                              rosListener.GetShouldRotate2() && rosListener.GetShouldRotate3();
+        // Vorwärts: GetShouldRotate14 bis 1 müssen alle true sein
+        bool canMoveForward = rosListener.GetShouldRotate14() && rosListener.GetShouldRotate15() &&
+                              rosListener.GetShouldRotate0() && rosListener.GetShouldRotate1();
 
-        // Rückwärts: GetShouldRotate8 bis 11 alle true
-        bool canMoveBackward = rosListener.GetShouldRotate8() && rosListener.GetShouldRotate9() &&
-                               rosListener.GetShouldRotate10() && rosListener.GetShouldRotate11();
+        // Rückwärts: GetShouldRotate6 bis 9 alle true
+        bool canMoveBackward = rosListener.GetShouldRotate6() && rosListener.GetShouldRotate7() &&
+                               rosListener.GetShouldRotate8() && rosListener.GetShouldRotate9();
 
-        // Rechts drehen: GetShouldRotate4 bis 7 alle true
-        bool canRotateRight = rosListener.GetShouldRotate4() && rosListener.GetShouldRotate5() &&
-                              rosListener.GetShouldRotate6() && rosListener.GetShouldRotate7();
+        // Rechts drehen: GetShouldRotate2 bis 5 alle true
+        bool canRotateRight = rosListener.GetShouldRotate2() && rosListener.GetShouldRotate3() &&
+                              rosListener.GetShouldRotate4() && rosListener.GetShouldRotate5();
 
-        // Links drehen: GetShouldRotate12 bis 15 alle true
-        bool canRotateLeft = rosListener.GetShouldRotate12() && rosListener.GetShouldRotate13() &&
-                             rosListener.GetShouldRotate14() && rosListener.GetShouldRotate15();
+        // Links drehen: GetShouldRotate10 bis 13 alle true
+        bool canRotateLeft = rosListener.GetShouldRotate10() && rosListener.GetShouldRotate11() &&
+                             rosListener.GetShouldRotate12() && rosListener.GetShouldRotate13();
 
 
         // Bewegung nach vorne (Input.GetAxis("Vertical") > 0)
