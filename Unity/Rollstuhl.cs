@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class Rolllstuhl : MonoBehaviour
+public class Rollstuhl : MonoBehaviour
 {
     public float Speed;
     public float SpeedRotation;
