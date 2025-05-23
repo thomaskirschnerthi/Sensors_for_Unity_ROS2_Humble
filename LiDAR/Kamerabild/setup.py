@@ -23,7 +23,9 @@ setup(
         'kamerabild1 = Kamerabild.kamerabild1:main',
         'lidar1 = Kamerabild.lidar1:main',
         'testScan = Kamerabild.testScan:main',
-        'lidar5006 = Kamerabild.lidar5006:main'
+        'lidar5006 = Kamerabild.lidar5006:main',
+        'MultiBoolRelayNode = Kamerabild.MultiBoolRelayNode:main',
+        'MultiBoolTestNode = Kamerabild.MultiBoolTestNode:main'
         ],
     },
 )
