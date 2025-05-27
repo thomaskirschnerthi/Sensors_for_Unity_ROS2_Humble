@@ -1,0 +1,124 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class CollisionColorChanger : MonoBehaviour
+{
+    [Tooltip("Dieses Objekt wird eingefärbt (z. B. ein GameObject mit Renderer).")]
+    public GameObject targetObject;
+
+    [Tooltip("Winkel in Grad, wie sehr ein Kontakt von unten kommen darf, um ignoriert zu werden")]
+    [Range(0f, 90f)]
+    public float bottomAngleThreshold = 30f;
+
+    [Tooltip("Intervall in Sekunden, wie oft das andere Objekt blinken soll")]
+    public float blinkInterval = 1f;
+
+    private Renderer targetRenderer;
+    private int relevantCollisionCount = 0;
+
+    // Für blinkende Objekte und ihre ursprünglichen Farben
+    private Dictionary<GameObject, Coroutine> blinkingObjects = new Dictionary<GameObject, Coroutine>();
+    private Dictionary<GameObject, Color> originalColors = new Dictionary<GameObject, Color>();
+
+    private void Start()
+    {
+        if (targetObject != null)
+        {
+            targetRenderer = targetObject.GetComponent<Renderer>();
+            if (targetRenderer != null)
+            {
+                SetColor(Color.green);
+            }
+        }
+        else
+        {
+            Debug.LogWarning("Kein Zielobjekt zugewiesen!");
+        }
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (IsRelevantCollision(collision))
+        {
+            relevantCollisionCount++;
+            UpdateColor();
+
+            GameObject other = collision.gameObject;
+            if (!blinkingObjects.ContainsKey(other))
+            {
+                Renderer r = other.GetComponent<Renderer>();
+                if (r != null)
+                {
+                    if (!originalColors.ContainsKey(other))
+                    {
+                        originalColors[other] = r.material.color;
+                    }
+
+                    Coroutine c = StartCoroutine(BlinkObject(r));
+                    blinkingObjects[other] = c;
+                }
+            }
+        }
+    }
+
+    private void OnCollisionExit(Collision collision)
+    {
+        // ❗ NICHT prüfen, ob die Kollision relevant war!
+        GameObject other = collision.gameObject;
+        if (blinkingObjects.TryGetValue(other, out Coroutine c))
+        {
+            StopCoroutine(c);
+            blinkingObjects.Remove(other);
+
+            Renderer r = other.GetComponent<Renderer>();
+            if (r != null && originalColors.TryGetValue(other, out Color originalColor))
+            {
+                r.material.color = originalColor;
+                originalColors.Remove(other);
+            }
+        }
+
+        relevantCollisionCount = Mathf.Max(0, relevantCollisionCount - 1);
+        UpdateColor();
+    }
+
+    private bool IsRelevantCollision(Collision collision)
+    {
+        foreach (ContactPoint contact in collision.contacts)
+        {
+            float angle = Vector3.Angle(contact.normal, Vector3.up);
+            if (angle > bottomAngleThreshold)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void UpdateColor()
+    {
+        if (targetRenderer != null)
+        {
+            SetColor(relevantCollisionCount > 0 ? Color.red : Color.green);
+        }
+    }
+
+    private void SetColor(Color color)
+    {
+        targetRenderer.material.color = color;
+    }
+
+    private IEnumerator BlinkObject(Renderer renderer)
+    {
+        Color[] colors = new Color[] { Color.red, Color.black };
+        int index = 0;
+
+        while (true)
+        {
+            renderer.material.color = colors[index % 2];
+            index++;
+            yield return new WaitForSeconds(blinkInterval);
+        }
+    }
+}
