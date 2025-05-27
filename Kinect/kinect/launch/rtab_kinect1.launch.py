@@ -3,48 +3,84 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     return LaunchDescription([
-        # Kamera-Info-Publisher (Dummy)
-        Node(
-            package='kinect',
-            executable='camera_info_publisher',
-            name='camera_info_publisher'
-        ),
-        # statische TF: base_link → camera_link
+        # Statische Transformation: base_link -> camera_link
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
+            name='camera_tf_pub',
             arguments=['0', '0', '0', '0', '0', '0', 'base_link', 'camera_link']
         ),
-        # RGBD-Sync Node (optional für RTAB)
+
+        # Optional: map -> odom (damit der TF-Baum vollständig ist)
         Node(
-            package='rtabmap_ros',
-            executable='rgbd_sync',
-            name='rgbd_sync',
-            parameters=[{'approx_sync': True}],
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name='map_to_odom',
+            arguments=['0', '0', '0', '0', '0', '0', 'map', 'odom']
+        ),
+
+        # RGB-D Odometry (aus rtabmap_odom!)
+        Node(
+            package='rtabmap_odom',
+            executable='rgbd_odometry',
+            name='rgbd_odometry',
+            output='screen',
+            parameters=[
+                {'frame_id': 'base_link'},
+                {'subscribe_rgbd': False},
+                {'subscribe_rgb': True},
+                {'subscribe_depth': True},
+                {'approx_sync': True},
+                {'queue_size': 30}
+            ],
             remappings=[
                 ('rgb/image', '/kinect1/rgb'),
                 ('depth/image', '/kinect1/depth'),
-                ('rgb/camera_info', '/kinect1/camera_info')
+                ('rgb/camera_info', '/kinect1/camera_info'),
             ]
         ),
-        # RTAB-Map-Kern
+
+        # RTAB-Map Hauptknoten
         Node(
-            package='rtabmap_ros',
+            package='rtabmap_slam',
             executable='rtabmap',
             name='rtabmap',
-            parameters=[{
-                'frame_id': 'base_link',
-                'subscribe_depth': True,
-                'subscribe_rgbd': True,
-                'visual_odometry': True,
-                'approx_sync': True
-            }]
+            output='screen',
+            parameters=[
+                {'frame_id': 'base_link'},
+                {'subscribe_rgbd': False},
+                {'subscribe_depth': True},
+                {'subscribe_rgb': True},
+                {'subscribe_odom_info': True},
+                {'queue_size': 30},
+                {'Reg/Force3DoF': True},
+            ],
+            remappings=[
+                ('rgb/image', '/kinect1/rgb'),
+                ('depth/image', '/kinect1/depth'),
+                ('rgb/camera_info', '/kinect1/camera_info'),
+                ('odom', '/odom')
+            ]
         ),
-        # RTAB-Map GUI
+
+        # Visualization
         Node(
-            package='rtabmap_ros',
-            executable='rtabmapviz',
-            name='rtabmapviz',
-            parameters=[{'frame_id': 'base_link'}]
-        )
+            package='rtabmap_viz',
+            executable='rtabmap_viz',
+            name='rtabmap_viz',
+            output='screen',
+            parameters=[
+                {'frame_id': 'base_link'},
+                {'subscribe_rgbd': False},
+                {'subscribe_rgb': True},
+                {'subscribe_depth': True},
+            ],
+            remappings=[
+                ('rgb/image', '/kinect1/rgb'),
+                ('depth/image', '/kinect1/depth'),
+                ('rgb/camera_info', '/kinect1/camera_info'),
+                ('odom', '/odom')
+            ]
+        ),
     ])
+

@@ -16,7 +16,7 @@ private:
   void publish_info() {
     auto msg = sensor_msgs::msg::CameraInfo();
     msg.header.stamp = now();
-    msg.header.frame_id = "camera_link";
+    msg.header.frame_id = "kinect1_rgb_optical_frame";
     msg.width = 512;
     msg.height = 424;
     msg.k = {365.456, 0.0, 254.878, 0.0, 365.456, 205.395, 0.0, 0.0, 1.0}; // fx, fy, cx, cy
