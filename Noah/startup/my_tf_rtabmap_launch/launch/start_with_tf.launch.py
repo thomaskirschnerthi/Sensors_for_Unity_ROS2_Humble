@@ -6,7 +6,7 @@ import os
 import yaml
 
 def generate_launch_description():
-    # YAML-Dateipfad lesen
+    # YAML-Dateipfad für statische TFs laden
     config_file = os.path.join(
         os.path.dirname(__file__), '..', 'config', 'tf_transforms.yaml')
     config_file = os.path.realpath(config_file)
@@ -14,7 +14,7 @@ def generate_launch_description():
     with open(config_file, 'r') as f:
         tf_data = yaml.safe_load(f)
 
-    # Erzeuge static_transform_publisher-Nodes
+    # Statische TFs aus YAML erzeugen
     tf_nodes = []
     for tf in tf_data['transforms']:
         translation = tf['translation']
@@ -33,7 +33,7 @@ def generate_launch_description():
             )
         )
 
-    # RTABMap Launch-Datei einbinden (Pfad zum ROS-Installationsverzeichnis)
+    # RTAB-Map Launch einbinden (angepasst auf /kinect1/...)
     rtabmap_launch_path = os.path.join(
         '/opt/ros/humble/share/rtabmap_launch/launch', 'rtabmap.launch.py')
 
@@ -45,10 +45,10 @@ def generate_launch_description():
             'visual_odometry': 'false',
             'subscribe_scan': 'true',
             'scan_topic': '/scan',
-            'rgb_topic': '/kinect2/qhd/image_color_rect',
-            'depth_topic': '/kinect2/qhd/image_depth_rect',
-            'camera_info_topic': '/kinect2/qhd/camera_info',
-            'camera_frame_id': 'kinect2_color_optical_frame',
+            'rgb_topic': '/kinect1/rgb',
+            'depth_topic': '/kinect1/depth',
+            'camera_info_topic': '/kinect1/camera_info',
+            'camera_frame_id': 'kinect1_rgb_optical_frame',
             'compressed': 'false',
             'rgbd_sync': 'true',
             'approx_sync': 'true',
