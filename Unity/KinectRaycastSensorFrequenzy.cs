@@ -20,7 +20,7 @@ public class KinectRaycastSensorFrequenzy : MonoBehaviour
 
     [Header("Abtastfrequenz")]
     [Tooltip("Abtastfrequenz in Hertz (z. B. 10 = 10 Abtastungen/Sekunde)")]
-    public float abtastfrequenzHz = 10f;
+    public float abtastfrequenzHz = 30f;
 
     private float[] depthData;
     private byte[] rgbData;
@@ -205,14 +205,14 @@ public class KinectRaycastSensorFrequenzy : MonoBehaviour
 
     struct RayGenerationJob : IJobParallelFor
     {
-        public int width;
         public int height;
+        public int width;
         public CameraData camData;
         public NativeArray<RaycastCommand> rayCommands;
 
         public void Execute(int index)
         {
-            int x = width - 1 - (index % width);    // x gespiegelt
+            int x = index % width; // <-- NICHT gespiegelt
             int y = index / width;
             float u = (float)x / (width - 1);
             float v = (float)y / (height - 1);
