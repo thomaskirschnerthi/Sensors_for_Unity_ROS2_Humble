@@ -1,9 +1,6 @@
-#include "rclcpp/rclcpp.hpp"
-#include "sensor_msgs/msg/image.hpp"
-#include "sensor_msgs/msg/point_cloud2.hpp"
-#include "sensor_msgs/msg/point_field.hpp"
-#include "std_msgs/msg/header.hpp"
-#include "builtin_interfaces/msg/time.hpp"
+// Anpassungen in KinectReceiver.cpp
+// 1. Frame-IDs & Topics angleichen
+// 2. CameraInfoPublisher integrieren
 
 #include <thread>
 #include <vector>
@@ -17,12 +14,17 @@
 #include <pcl/point_cloud.h>
 #include <pcl_conversions/pcl_conversions.h>
 
+#include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/image.hpp"
+#include "sensor_msgs/msg/point_cloud2.hpp"
+#include "sensor_msgs/msg/camera_info.hpp"
+
 using namespace std::chrono_literals;
 
 class KinectReceiver : public rclcpp::Node {
 public:
 	KinectReceiver() : Node("kinect_receiver") {
-		this->declare_parameter<std::string>("kinect_id", "kinect1");
+		this->declare_parameter<std::string>("kinect_id", "kinect2");
 		this->declare_parameter<int>("depth_port", 5007);
 		this->declare_parameter<int>("rgb_port", 5008);
 
@@ -30,13 +32,15 @@ public:
 		this->get_parameter("depth_port", depth_port_);
 		this->get_parameter("rgb_port", rgb_port_);
 
-		depth_topic_ = "/" + kinect_id_ + "/depth";
-		rgb_topic_   = "/" + kinect_id_ + "/rgb";
+		depth_topic_ = "/" + kinect_id_ + "/qhd/image_depth_rect";
+		rgb_topic_   = "/" + kinect_id_ + "/qhd/image_color_rect";
+		camera_info_topic_ = "/" + kinect_id_ + "/qhd/camera_info";
 		points_topic_ = "/" + kinect_id_ + "/points";
 
 		depth_pub_ = create_publisher<sensor_msgs::msg::Image>(depth_topic_, 10);
 		rgb_pub_   = create_publisher<sensor_msgs::msg::Image>(rgb_topic_, 10);
 		pc_pub_    = create_publisher<sensor_msgs::msg::PointCloud2>(points_topic_, 10);
+		camera_info_pub_ = create_publisher<sensor_msgs::msg::CameraInfo>(camera_info_topic_, 10);
 
 		depth_data_.resize(width_ * height_);
 		rgb_data_.resize(width_ * height_ * 3);
@@ -48,7 +52,7 @@ public:
 private:
 	std::string kinect_id_;
 	int depth_port_, rgb_port_;
-	std::string depth_topic_, rgb_topic_, points_topic_;
+	std::string depth_topic_, rgb_topic_, points_topic_, camera_info_topic_;
 
 	int width_ = 512;
 	int height_ = 424;
@@ -62,6 +66,7 @@ private:
 
 	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr depth_pub_, rgb_pub_;
 	rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pc_pub_;
+	rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_pub_;
 
 	void depth_server() {
 		int server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -124,7 +129,7 @@ private:
 	void publish_depth() {
 		auto msg = sensor_msgs::msg::Image();
 		msg.header.stamp = now();
-		msg.header.frame_id = "camera_link";
+		msg.header.frame_id = "kinect2_color_optical_frame";
 		msg.height = height_;
 		msg.width = width_;
 		msg.encoding = "32FC1";
@@ -132,25 +137,38 @@ private:
 		msg.data.resize(width_ * height_ * 4);
 		std::memcpy(msg.data.data(), depth_data_.data(), msg.data.size());
 		depth_pub_->publish(msg);
+		publish_camera_info(msg.header);
 	}
 
 	void publish_rgb() {
 		auto msg = sensor_msgs::msg::Image();
 		msg.header.stamp = now();
-		msg.header.frame_id = "camera_link";
+		msg.header.frame_id = "kinect2_color_optical_frame";
 		msg.height = height_;
 		msg.width = width_;
 		msg.encoding = "rgb8";
 		msg.step = width_ * 3;
 		msg.data = rgb_data_;
 		rgb_pub_->publish(msg);
+		publish_camera_info(msg.header);
+	}
+
+	void publish_camera_info(const std_msgs::msg::Header& header) {
+		sensor_msgs::msg::CameraInfo cam_info;
+		cam_info.header = header;
+		cam_info.height = height_;
+		cam_info.width = width_;
+		cam_info.k = {fx_, 0.0, cx_, 0.0, fy_, cy_, 0.0, 0.0, 1.0};
+		cam_info.p = {fx_, 0.0, cx_, 0.0, 0.0, fy_, cy_, 0.0, 0.0, 0.0, 1.0, 0.0};
+		cam_info.distortion_model = "plumb_bob";
+		camera_info_pub_->publish(cam_info);
 	}
 
 	void try_publish_pointcloud() {
 		if (!has_depth_ || !has_rgb_) return;
 
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
-		cloud->header.frame_id = "camera_link";
+		cloud->header.frame_id = "kinect2_color_optical_frame";
 		cloud->is_dense = false;
 		cloud->points.reserve(width_ * height_);
 
@@ -185,7 +203,7 @@ private:
 		sensor_msgs::msg::PointCloud2 output;
 		pcl::toROSMsg(*cloud, output);
 		output.header.stamp = now();
-		output.header.frame_id = "camera_link";
+		output.header.frame_id = "kinect2_color_optical_frame";
 		pc_pub_->publish(output);
 	}
 };
@@ -196,3 +214,4 @@ int main(int argc, char **argv) {
 	rclcpp::shutdown();
 	return 0;
 }
+
