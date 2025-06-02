@@ -35,7 +35,7 @@ public:
 		depth_topic_ = "/" + kinect_id_ + "/qhd/image_depth_rect";
 		rgb_topic_   = "/" + kinect_id_ + "/qhd/image_color_rect";
 		camera_info_topic_ = "/" + kinect_id_ + "/qhd/camera_info";
-		points_topic_ = "/" + kinect_id_ + "/points";
+		points_topic_ = "/" + kinect_id_ + "/test/points";
 
 		depth_pub_ = create_publisher<sensor_msgs::msg::Image>(depth_topic_, 10);
 		rgb_pub_   = create_publisher<sensor_msgs::msg::Image>(rgb_topic_, 10);
