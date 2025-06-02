@@ -20,7 +20,7 @@ public class KinectRaycastSensorFrequenzy : MonoBehaviour
 
     [Header("Abtastfrequenz")]
     [Tooltip("Abtastfrequenz in Hertz (z. B. 10 = 10 Abtastungen/Sekunde)")]
-    public float abtastfrequenzHz = 30f;
+    public float abtastfrequenzHz = 10f;
 
     private float[] depthData;
     private byte[] rgbData;
@@ -98,36 +98,43 @@ public class KinectRaycastSensorFrequenzy : MonoBehaviour
         SendRgbData(rosIp, rgbPort);
     }
 
-    void ProcessHitsOnMainThread()
+void ProcessHitsOnMainThread()
+{
+    Vector3 camForward = sensorCamera.transform.forward.normalized;
+
+    for (int i = 0; i < rayResults.Length; i++)
     {
-        for (int i = 0; i < rayResults.Length; i++)
+        RaycastHit hit = rayResults[i];
+
+        if (hit.collider != null)
         {
-            RaycastHit hit = rayResults[i];
+            Vector3 rayDir = rayCommands[i].direction.normalized;
 
-            if (hit.collider != null)
+            // Tiefe entlang der optischen Z-Achse berechnen (nicht Ray-Länge direkt!)
+            float opticalDepth = hit.distance * Vector3.Dot(rayDir, camForward);
+            depthData[i] = Mathf.Round(opticalDepth * 100f) / 100f;
+
+            // Farbe berechnen
+            Color color = Color.black;
+            Renderer renderer = hit.collider.GetComponent<Renderer>();
+            if (renderer != null && renderer.material != null)
             {
-                depthData[i] = Mathf.Round(hit.distance * 100f) / 100f;
-
-                Color color = Color.black;
-                Renderer renderer = hit.collider.GetComponent<Renderer>();
-                if (renderer != null && renderer.material != null)
-                {
-                    color = renderer.material.color;
-                }
-
-                rgbData[i * 3 + 0] = (byte)(Mathf.Clamp01(color.r) * 255f);
-                rgbData[i * 3 + 1] = (byte)(Mathf.Clamp01(color.g) * 255f);
-                rgbData[i * 3 + 2] = (byte)(Mathf.Clamp01(color.b) * 255f);
+                color = renderer.material.color;
             }
-            else
-            {
-                depthData[i] = 0f;
-                rgbData[i * 3 + 0] = 0;
-                rgbData[i * 3 + 1] = 0;
-                rgbData[i * 3 + 2] = 0;
-            }
+
+            rgbData[i * 3 + 0] = (byte)(Mathf.Clamp01(color.r) * 255f);
+            rgbData[i * 3 + 1] = (byte)(Mathf.Clamp01(color.g) * 255f);
+            rgbData[i * 3 + 2] = (byte)(Mathf.Clamp01(color.b) * 255f);
+        }
+        else
+        {
+            depthData[i] = 0f;
+            rgbData[i * 3 + 0] = 0;
+            rgbData[i * 3 + 1] = 0;
+            rgbData[i * 3 + 2] = 0;
         }
     }
+}
 
     void SendDepthData(string ip, int port)
     {
@@ -205,14 +212,14 @@ public class KinectRaycastSensorFrequenzy : MonoBehaviour
 
     struct RayGenerationJob : IJobParallelFor
     {
-        public int height;
         public int width;
+        public int height;
         public CameraData camData;
         public NativeArray<RaycastCommand> rayCommands;
 
         public void Execute(int index)
         {
-            int x = index % width; // <-- NICHT gespiegelt
+            int x = width - 1 - (index % width); // gespiegelt an der x - Achse
             int y = index / width;
             float u = (float)x / (width - 1);
             float v = (float)y / (height - 1);
