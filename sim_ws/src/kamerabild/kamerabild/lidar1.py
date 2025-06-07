@@ -50,7 +50,7 @@ class LidarScanNode(Node):
 
             msg = LaserScan()
             msg.header.stamp = now.to_msg()
-            msg.header.frame_id = 'base_link'
+            msg.header.frame_id = 'laser'
 
             msg.angle_min = 0.0
             msg.angle_max = 2 * math.pi
