@@ -133,7 +133,7 @@ private:
 	void publish_depth(const rclcpp::Time& stamp) {
 		auto msg = sensor_msgs::msg::Image();
 		msg.header.stamp = stamp;
-		msg.header.frame_id = "kinect2_color_optical_frame";
+		msg.header.frame_id = "_rgb_optical_frame";
 		msg.height = height_;
 		msg.width = width_;
 		msg.encoding = "32FC1";
