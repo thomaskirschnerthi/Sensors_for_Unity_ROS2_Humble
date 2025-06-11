@@ -62,7 +62,8 @@ class LidarScanNode(Node):
             msg.ranges = self.ranges.copy()
 
             self.publisher.publish(msg)
-            self.get_logger().info(f"Scan veröffentlicht (Messpunkte: {len(self.received)})")
+            self.get_logger().info(f"Scan veröffentlicht (Messpunkte: {len(self.received)}) {msg.ranges[0]}")
+            
 
             self.ranges = [float('inf')] * 500
             self.received.clear()
