@@ -73,7 +73,16 @@ def generate_launch_description():
             'RGBD/AngularUpdate': '0.005',
             'RGBD/OptimizeMaxError': '2.0',
             'Mem/NotLinkedNodesKept': 'false',
-            'VisMinInliers': '10'
+            'VisMinInliers': '10',
+            'Odom/ResetCountdown' : '1',
+            'Odom/Strategy': '1',  # 1 = ICP-only, 0 = Visual-only
+            'Odom/GuessMotion': 'true',  # Nutze Bewegungsmodell, um Guess zu erzeugen
+            'RGBD/OptimizeFromGraphEnd': 'true',  # Optimiere bei Relokalisierung ab dem letzten Knoten
+            'Mem/RehearsalSimilarity': '0.3',  # Erlaubt früheres Erkennen gleicher Orte (Relokalisierung)
+            'Rtabmap/TimeThr': '700',
+            'subscribe_odom': 'true',
+            'RGBD/NeighborLinkRefining': 'true'  # Verbessert Trajektorie lokal bei Relokalisierung
+
         }.items()
     )
 
