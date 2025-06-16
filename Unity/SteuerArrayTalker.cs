@@ -10,8 +10,8 @@ public class SteuerArrayTalker : MonoBehaviour
 
     private Rollstuhl rollstuhlScript;
 
-    // Zum Speichern des vorherigen Zustands
-    private int[] letzterZustand = new int[2];
+    private float sendInterval = 1f / 125f; // 125 Hz = alle 0.008 Sekunden wird das Array an ROS gesendet
+    private float sendTimer = 0f;
 
     void Start()
     {
@@ -22,10 +22,6 @@ public class SteuerArrayTalker : MonoBehaviour
         {
             Debug.LogError("Rollstuhl-Komponente nicht gefunden!");
         }
-
-        // Initialzustand auf ungültige Werte setzen, um beim Start direkt zu senden
-        letzterZustand[0] = int.MinValue;
-        letzterZustand[1] = int.MinValue;
     }
 
     void Update()
@@ -38,15 +34,15 @@ public class SteuerArrayTalker : MonoBehaviour
             commandPublisher = ros2Node.CreatePublisher<Float32MultiArray>("/controller_commands");
         }
 
-        if (rollstuhlScript != null)
-        {
-            int[] aktuellerZustand = rollstuhlScript.Steuerbefehle_Unity;
+        sendTimer += Time.deltaTime;
 
-            // Nur senden, wenn sich ein Wert geändert hat
-            if (aktuellerZustand[0] != letzterZustand[0] || aktuellerZustand[1] != letzterZustand[1])
+        if (sendTimer >= sendInterval)
+        {
+            sendTimer = 0f;
+
+            if (rollstuhlScript != null)
             {
-                letzterZustand[0] = aktuellerZustand[0];
-                letzterZustand[1] = aktuellerZustand[1];
+                int[] aktuellerZustand = rollstuhlScript.Steuerbefehle_Unity;
 
                 Float32MultiArray msg = new Float32MultiArray
                 {
@@ -58,8 +54,13 @@ public class SteuerArrayTalker : MonoBehaviour
 
                 commandPublisher.Publish(msg);
 
-                Debug.Log($"ROS2 Publish: [Bewegung: {msg.Data[0]}, Rotation: {msg.Data[1]}]");
+               // Debug.Log($"[ROS2 125Hz] Publish: Bewegung: {msg.Data[0]}, Rotation: {msg.Data[1]}");
             }
         }
+    }
+
+    public float GetSendFrequency()
+    {
+        return 1f / sendInterval;
     }
 }

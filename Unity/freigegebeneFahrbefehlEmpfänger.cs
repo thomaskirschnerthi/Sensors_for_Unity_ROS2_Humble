@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 using ROS2;
 using std_msgs.msg;
@@ -13,13 +12,6 @@ public class FahrbefehlAnzeigen : MonoBehaviour
     // Interne Variablen für die beiden Werte
     private float bewegung = 0f; // Index 0 → vor/zurück
     private float rotation = 0f; // Index 1 → rechts/links
-
-    // Anzeigen im Inspector zuweisen
-    [Header("Steueranzeigen (Ziehen im Inspector)")]
-    public GameObject AnzeigeVorwärts;
-    public GameObject AnzeigeRückwärts;
-    public GameObject AnzeigeRechts;
-    public GameObject AnzeigeLinks;
 
     void Start()
     {
@@ -42,54 +34,26 @@ public class FahrbefehlAnzeigen : MonoBehaviour
                 {
                     if (msg.Data.Length >= 2)
                     {
-                    bewegung = msg.Data[0];
-                    rotation = msg.Data[1];
-                    Debug.Log($"[ROS] Fahrbefehl empfangen: Bewegung = {bewegung}, Rotation = {rotation}");
+                        bewegung = msg.Data[0];
+                        rotation = msg.Data[1];
+                        Debug.Log($"[ROS] Fahrbefehl empfangen: Bewegung = {bewegung}, Rotation = {rotation}");
                     }
                     else
                     {
-                    Debug.LogWarning("Empfangene Float32MultiArray hat weniger als 2 Werte.");
+                        Debug.LogWarning("Empfangene Float32MultiArray hat weniger als 2 Werte.");
                     }
-
                 });
         }
-
-        UpdateAnzeigen();
     }
 
-    void UpdateAnzeigen()
+    // Öffentliche Getter-Methoden für externen Zugriff
+    public float GetBewegung()
     {
-        // Anzeige Vorwärts (bewegung > 0)
-        if (AnzeigeVorwärts != null)
-        {
-            SetAnzeigenFarbe(AnzeigeVorwärts, bewegung > 0f);
-        }
-
-        // Anzeige Rückwärts (bewegung < 0)
-        if (AnzeigeRückwärts != null)
-        {
-            SetAnzeigenFarbe(AnzeigeRückwärts, bewegung < 0f);
-        }
-
-        // Anzeige Rechts (rotation > 0)
-        if (AnzeigeRechts != null)
-        {
-            SetAnzeigenFarbe(AnzeigeRechts, rotation > 0f);
-        }
-
-        // Anzeige Links (rotation < 0)
-        if (AnzeigeLinks != null)
-        {
-            SetAnzeigenFarbe(AnzeigeLinks, rotation < 0f);
-        }
+        return bewegung;
     }
 
-    void SetAnzeigenFarbe(GameObject anzeige, bool aktiv)
+    public float GetRotation()
     {
-        Renderer renderer = anzeige.GetComponent<Renderer>();
-        if (renderer != null)
-        {
-            renderer.material.color = aktiv ? Color.green : Color.red;
-        }
+        return rotation;
     }
 }

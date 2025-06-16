@@ -15,15 +15,22 @@ public class Rollstuhl : MonoBehaviour
     public int odomPort = 5005;
     public float odomSendRateHz = 10f;
 
+    [Header("Fahrbefehl (von ROS)")]
+    public FahrbefehlAnzeigen fahrbefehlAnzeigen;
+
+    [Header("Ampelanzeigen")]
+    public GameObject AnzeigeVorwärts;
+    public GameObject AnzeigeRückwärts;
+    public GameObject AnzeigeRechts;
+    public GameObject AnzeigeLinks;
+
+    public GameObject[] visualIndicators = new GameObject[16];
+    public int[] Steuerbefehle_Unity = new int[2]; // 0 = Bewegung, 1 = Rotation
+
     private float odomSendInterval;
     private float odomTimer;
 
-     // Array für 16 GameObjects zum Einfärben im Editor
-    public GameObject[] visualIndicators = new GameObject[16];
-
-    // Neues Array zur Speicherung der Steuerbefehle
-    public int[] Steuerbefehle_Unity = new int[2];
-
+    private bool bewegungErlaubt = true; // Steuerung über Tasten 0 und 1
 
     void Start()
     {
@@ -39,10 +46,26 @@ public class Rollstuhl : MonoBehaviour
 
     void Update()
     {
-        
-        Movement();
-        UpdateVisualIndicators();
+        // Tasteneingaben zur Bewegungssperre
+        if (Input.GetKeyDown(KeyCode.Alpha0))
+        {
+            bewegungErlaubt = false;
+            Debug.Log("🚫 Bewegung GESPERRT durch Ziffer 0");
+        }
+        else if (Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            bewegungErlaubt = true;
+            Debug.Log("✅ Bewegung FREIGEGEBEN durch Ziffer 1");
+        }
+
         UpdateSteuerbefehle();
+        UpdateVisualIndicators();
+        UpdateAmpelFarbLogik();
+
+        if (bewegungErlaubt)
+        {
+            Movement(); // Nur wenn erlaubt
+        }
 
         odomTimer += Time.deltaTime;
         if (odomTimer >= odomSendInterval)
@@ -52,118 +75,88 @@ public class Rollstuhl : MonoBehaviour
         }
     }
 
+    void UpdateSteuerbefehle()
+    {
+        Steuerbefehle_Unity[0] = Input.GetKey(KeyCode.UpArrow) ? 1 :
+                                  Input.GetKey(KeyCode.DownArrow) ? -1 : 0;
+
+        Steuerbefehle_Unity[1] = Input.GetKey(KeyCode.RightArrow) ? 1 :
+                                  Input.GetKey(KeyCode.LeftArrow) ? -1 : 0;
+    }
+
     void Movement()
     {
-        if (rosListener == null) return;
+        if (fahrbefehlAnzeigen == null) return;
 
-        // Prüfen, ob die Bedingungen für Bewegung / Drehung erfüllt sind
+        float bewegung = fahrbefehlAnzeigen.GetBewegung();
+        float rotation = fahrbefehlAnzeigen.GetRotation();
 
-        // Vorwärts: GetShouldRotate0 bis 3 müssen alle true sein
-        //  bool canMoveForward = rosListener.GetShouldRotate0() && rosListener.GetShouldRotate1() &&
-        //                        rosListener.GetShouldRotate2() && rosListener.GetShouldRotate3();
-
-        // Rückwärts: GetShouldRotate8 bis 11 alle true
-        // bool canMoveBackward = rosListener.GetShouldRotate8() && rosListener.GetShouldRotate9() &&
-        //                       rosListener.GetShouldRotate10() && rosListener.GetShouldRotate11();
-
-        // Rechts drehen: GetShouldRotate4 bis 7 alle true
-        //  bool canRotateRight = rosListener.GetShouldRotate4() && rosListener.GetShouldRotate5() &&
-        //                    rosListener.GetShouldRotate6() && rosListener.GetShouldRotate7();
-
-        // Links drehen: GetShouldRotate12 bis 15 alle true
-        //  bool canRotateLeft = rosListener.GetShouldRotate12() && rosListener.GetShouldRotate13() &&
-        //                 rosListener.GetShouldRotate14() && rosListener.GetShouldRotate15();
-
-        // Diese Booleans dienen nur für den Lösungsfindungsprozess 
-        bool canMoveForward = true;
-        bool canMoveBackward = true;
-        bool canRotateLeft = true;
-        bool canRotateRight = true;
-
-        if (canMoveForward && Input.GetAxis("Vertical") > 0)
+        if (bewegung == 1f)
         {
-            Vector3 movement = Vector3.back * Input.GetAxis("Vertical") * Speed * Time.deltaTime;
-            transform.Translate(movement);
+            transform.Translate(Vector3.back * Speed * Time.deltaTime);
+        }
+        else if (bewegung == -1f)
+        {
+            transform.Translate(Vector3.forward * Speed * Time.deltaTime);
         }
 
-        if (canMoveBackward && Input.GetAxis("Vertical") < 0)
+        if (rotation != 0f)
         {
-            Vector3 movement = Vector3.back * Input.GetAxis("Vertical") * Speed * Time.deltaTime;
-            transform.Translate(movement);
+            Vector3 axis = rotation > 0 ? Vector3.up : Vector3.down;
+            transform.Rotate(axis, Mathf.Abs(rotation) * SpeedRotation * Time.deltaTime);
         }
+    }
 
-        if (canRotateRight && Input.GetAxis("Horizontal") > 0)
+    void UpdateAmpelFarbLogik()
+    {
+        if (fahrbefehlAnzeigen == null) return;
+
+        float bewegung = fahrbefehlAnzeigen.GetBewegung();
+        float rotation = fahrbefehlAnzeigen.GetRotation();
+
+        bool tasteVor = Steuerbefehle_Unity[0] == 1;
+        bool tasteZurück = Steuerbefehle_Unity[0] == -1;
+        bool tasteRechts = Steuerbefehle_Unity[1] == 1;
+        bool tasteLinks = Steuerbefehle_Unity[1] == -1;
+
+        UpdateAmpelFarbe(AnzeigeVorwärts, tasteVor, bewegung == 1 && bewegungErlaubt);
+        UpdateAmpelFarbe(AnzeigeRückwärts, tasteZurück, bewegung == -1 && bewegungErlaubt);
+        UpdateAmpelFarbe(AnzeigeRechts, tasteRechts, rotation == 1 && bewegungErlaubt);
+        UpdateAmpelFarbe(AnzeigeLinks, tasteLinks, rotation == -1 && bewegungErlaubt);
+    }
+
+    void UpdateAmpelFarbe(GameObject anzeige, bool tasteAktiv, bool rosBefehlAktiv)
+    {
+        if (anzeige == null) return;
+
+        Renderer renderer = anzeige.GetComponent<Renderer>();
+        if (renderer != null)
         {
-            if (Input.GetAxis("Vertical") < 0)
-                transform.Rotate(Vector3.down, Input.GetAxis("Horizontal") * SpeedRotation * Time.deltaTime);
+            // Neu: rot wenn Taste gedrückt aber kein freigegebener Befehl (oder Bewegung gesperrt),
+            // grün wenn Befehl aktiv, grau sonst
+            if (tasteAktiv && (!rosBefehlAktiv || !bewegungErlaubt))
+                renderer.material.color = Color.red;
+            else if (rosBefehlAktiv && bewegungErlaubt)
+                renderer.material.color = Color.green;
             else
-                transform.Rotate(Vector3.up, Input.GetAxis("Horizontal") * SpeedRotation * Time.deltaTime);
+                renderer.material.color = Color.gray;
         }
-
-        if (canRotateLeft && Input.GetAxis("Horizontal") < 0)
-        {
-            if (Input.GetAxis("Vertical") < 0)
-                transform.Rotate(Vector3.down, Input.GetAxis("Horizontal") * SpeedRotation * Time.deltaTime);
-            else
-                transform.Rotate(Vector3.up, Input.GetAxis("Horizontal") * SpeedRotation * Time.deltaTime);
-        }
-
     }
 
-    void UpdateSteuerbefehle()
-{
-    // Bewegung (Pfeil nach vorne/hinten)
-    if (Input.GetKey(KeyCode.UpArrow))
-    {
-        Steuerbefehle_Unity[0] = 1;
-    }
-    else if (Input.GetKey(KeyCode.DownArrow))
-    {
-        Steuerbefehle_Unity[0] = -1;
-    }
-    else
-    {
-        Steuerbefehle_Unity[0] = 0;
-    }
-
-    // Rotation (Pfeil rechts/links)
-    if (Input.GetKey(KeyCode.RightArrow))
-    {
-        Steuerbefehle_Unity[1] = 1;
-    }
-    else if (Input.GetKey(KeyCode.LeftArrow))
-    {
-        Steuerbefehle_Unity[1] = -1;
-    }
-    else
-    {
-        Steuerbefehle_Unity[1] = 0;
-    }
-}
-
-
-void UpdateVisualIndicators()
+    void UpdateVisualIndicators()
     {
         if (rosListener == null) return;
 
         bool[] values = new bool[16]
         {
-            rosListener.GetShouldRotate0(),
-            rosListener.GetShouldRotate1(),
-            rosListener.GetShouldRotate2(),
-            rosListener.GetShouldRotate3(),
-            rosListener.GetShouldRotate4(),
-            rosListener.GetShouldRotate5(),
-            rosListener.GetShouldRotate6(),
-            rosListener.GetShouldRotate7(),
-            rosListener.GetShouldRotate8(),
-            rosListener.GetShouldRotate9(),
-            rosListener.GetShouldRotate10(),
-            rosListener.GetShouldRotate11(),
-            rosListener.GetShouldRotate12(),
-            rosListener.GetShouldRotate13(),
-            rosListener.GetShouldRotate14(),
-            rosListener.GetShouldRotate15()
+            rosListener.GetShouldRotate0(), rosListener.GetShouldRotate1(),
+            rosListener.GetShouldRotate2(), rosListener.GetShouldRotate3(),
+            rosListener.GetShouldRotate4(), rosListener.GetShouldRotate5(),
+            rosListener.GetShouldRotate6(), rosListener.GetShouldRotate7(),
+            rosListener.GetShouldRotate8(), rosListener.GetShouldRotate9(),
+            rosListener.GetShouldRotate10(), rosListener.GetShouldRotate11(),
+            rosListener.GetShouldRotate12(), rosListener.GetShouldRotate13(),
+            rosListener.GetShouldRotate14(), rosListener.GetShouldRotate15()
         };
 
         for (int i = 0; i < visualIndicators.Length && i < values.Length; i++)
@@ -172,7 +165,7 @@ void UpdateVisualIndicators()
             {
                 Renderer renderer = visualIndicators[i].GetComponent<Renderer>();
                 if (renderer != null)
-                {   // grün bei Wert false -> kein Hindernis in Sektor
+                {
                     renderer.material.color = values[i] ? Color.red : Color.green;
                 }
             }
@@ -181,7 +174,7 @@ void UpdateVisualIndicators()
 
     void SendOdometryToROS()
     {
-        OdometryData odom = new OdometryData
+        var odom = new OdometryData
         {
             x = transform.position.x,
             y = transform.position.y,
@@ -209,10 +202,7 @@ void UpdateVisualIndicators()
                     stream.Write(data, 0, data.Length);
                 }
             }
-            catch (SocketException ex)
-            {
-//                Debug.LogWarning($"TCP-Verbindung fehlgeschlagen: {ex.Message}");
-            }
+            catch (SocketException) { }
         });
     }
 

@@ -25,7 +25,7 @@ public class ROS2MultiBoolListener : MonoBehaviour
             for (int i = 0; i < 16; i++)
             {
                 int index = i; // Closure-Schutz
-                string topicName = $"/bool_topic_{index + 1}_unity";
+                string topicName = $"/bool_topic_{index + 1}";
 
                 boolSubscriptions[index] = ros2Node.CreateSubscription<Bool>(
                     topicName,
