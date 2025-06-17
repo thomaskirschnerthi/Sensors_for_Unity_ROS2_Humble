@@ -1,13 +1,11 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
-from launch.actions import IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
 import os
 import yaml
 
-def load_tf_nodes(yaml_path):
-    """Lade statische TF-Nodes aus YAML-Datei"""
-    with open(yaml_path, 'r') as f:
+def load_tf_nodes(tf_file, prefix=""):
+    tf_path = os.path.join(os.path.dirname(__file__), '..', 'config', tf_file)
+    with open(tf_path, 'r') as f:
         tf_data = yaml.safe_load(f)
 
     tf_nodes = []
@@ -22,7 +20,7 @@ def load_tf_nodes(yaml_path):
             Node(
                 package='tf2_ros',
                 executable='static_transform_publisher',
-                name=f'static_tf_{parent}_to_{child}',
+                name=f'{prefix}static_tf_{parent}_to_{child}',
                 arguments=args,
                 output='screen'
             )
@@ -30,110 +28,104 @@ def load_tf_nodes(yaml_path):
     return tf_nodes
 
 def generate_launch_description():
-    # Pfad zur RTAB-Map Launch-Datei
-    rtabmap_launch_path = os.path.join(
-        '/opt/ros/humble/share/rtabmap_launch/launch', 'rtabmap.launch.py'
+    tf_nodes_1 = load_tf_nodes('transforms.yaml', prefix='a_')
+    tf_nodes_2 = load_tf_nodes('transforms2.yaml', prefix='b_')
+
+    icp_odom_1 = Node(
+        package='rtabmap_ros',
+        executable='icp_odometry',
+        name='icp_odometry_1',
+        parameters=[{
+            'frame_id': 'base_link',
+            'odom_frame_id': 'odom',
+            'scan_topic': '/scan',
+            'Odom/MaxTranslation': 0.25,
+            'Odom/MaxRotation': 0.8,
+            'Reg/Strategy': 1,
+            'use_sim_time': False
+        }]
     )
 
-    # --- RTAB-Map 1: Kinect2 + /scan ---
-    tf_nodes_1 = load_tf_nodes(os.path.realpath(
-        os.path.join(os.path.dirname(__file__), '..', 'config', 'tf_transforms.yaml')
-    ))
+    icp_odom_2 = Node(
+        package='rtabmap_ros',
+        executable='icp_odometry',
+        name='icp_odometry_2',
+        parameters=[{
+            'frame_id': 'base_link2',
+            'odom_frame_id': 'odom2',
+            'scan_topic': '/scan2',
+            'Odom/MaxTranslation': 0.25,
+            'Odom/MaxRotation': 0.8,
+            'Reg/Strategy': 1,
+            'use_sim_time': False
+        }]
+    )
 
-    rtabmap1 = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(rtabmap_launch_path),
-        launch_arguments={
-            'stereo': 'false',
-            'icp_odometry': 'true',
-            'approx_sync': 'true',
-            'approx_sync_max_interval': '0.3',
-            'visual_odometry': 'false',
-            'subscribe_scan': 'true',
-            'icp_odometry': 'true',
+    rtabmap_1 = Node(
+        package='rtabmap_ros',
+        executable='rtabmap',
+        name='rtabmap_1',
+        output='screen',
+        parameters=[{
+            'frame_id': 'base_link',
+            'odom_frame_id': 'odom',
             'scan_topic': '/scan',
             'rgb_topic': '/kinect2/qhd/image_color_rect',
             'depth_topic': '/kinect2/qhd/image_depth_rect',
             'camera_info_topic': '/kinect2/qhd/camera_info',
-            'camera_frame_id': 'kinect2_color_optical_frame',
-            'compressed': 'false',
-            'rgbd_sync': 'true',
-            'depth_registration': 'false',
+            'approx_sync': True,
+            'rgbd_sync': True,
+            'Reg/Strategy': 1,
+            'Odom/MaxTranslation': 0.25,
+            'Odom/MaxRotation': 0.8,
             'database_path': os.path.expanduser('~/.ros/rtabmap1.db'),
-            'frame_id': 'base_link',
-            'odom_frame_id': 'odom',
-            'publish_tf_map': 'true',
-            'publish_tf_odom': 'true',
-            'use_sim_time': 'false',
-            'rviz': 'true',
-            'Grid/FromDepth': 'true',
-            'Grid/RayTracing': 'true',
-            'Grid/MaxGroundHeight': '0.1',
-            'Grid/DepthDecimation': '1',
-            'Grid/RangeMin': '0.3',
-            'Grid/RangeMax': '15.0',
-            'Grid/NormalK': '15',
-            'RGBD/LinearUpdate': '0.03',
-            'RGBD/AngularUpdate': '0.005',
-            'RGBD/OptimizeMaxError': '2.0',
-            'Mem/NotLinkedNodesKept': 'false',
-            'VisMinInliers': '10',
-            'Reg/Strategy': '1',
-            'Odom/MaxTranslation': '0.25',
-            'Odom/MaxRotation': '0.8'
-        }.items()
+            'subscribe_depth': True,
+            'subscribe_scan': True,
+            'Grid/FromDepth': True,
+            'Grid/RangeMax': 10.0,
+            'use_sim_time': False
+        }]
     )
 
-    # --- RTAB-Map 2: Kinect1 + /scan2 ---
-    tf_nodes_2 = load_tf_nodes(os.path.realpath(
-        os.path.join(os.path.dirname(__file__), '..', 'config', 'tf_transforms2.yaml')
-    ))
-
-    rtabmap2 = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(rtabmap_launch_path),
-        launch_arguments={
-            'stereo': 'false',
-            'approx_sync': 'true',
-            'approx_sync_max_interval': '0.3',
-            'visual_odometry': 'false',
-            'subscribe_scan': 'true',
+    rtabmap_2 = Node(
+        package='rtabmap_ros',
+        executable='rtabmap',
+        name='rtabmap_2',
+        output='screen',
+        parameters=[{
+            'frame_id': 'base_link2',
+            'odom_frame_id': 'odom2',
             'scan_topic': '/scan2',
             'rgb_topic': '/kinect1/qhd/image_color_rect',
             'depth_topic': '/kinect1/qhd/image_depth_rect',
             'camera_info_topic': '/kinect1/qhd/camera_info',
-            'camera_frame_id': 'kinect1_color_optical_frame',
-            'compressed': 'false',
-            'rgbd_sync': 'true',
-            'depth_registration': 'false',
+            'approx_sync': True,
+            'rgbd_sync': True,
+            'Reg/Strategy': 1,
+            'Odom/MaxTranslation': 0.25,
+            'Odom/MaxRotation': 0.8,
             'database_path': os.path.expanduser('~/.ros/rtabmap2.db'),
-            'frame_id': 'base_link2',
-            'odom_frame_id': 'odom2',
-            'publish_tf_map': 'true',
-            'publish_tf_odom': 'true',
-            'use_sim_time': 'false',
-            'rviz': 'false',
-            'Grid/FromDepth': 'true',
-            'Grid/RayTracing': 'true',
-            'Grid/MaxGroundHeight': '0.1',
-            'Grid/DepthDecimation': '1',
-            'Grid/RangeMin': '0.3',
-            'Grid/RangeMax': '6.0',
-            'Grid/NormalK': '15',
-            'RGBD/LinearUpdate': '0.03',
-            'RGBD/AngularUpdate': '0.005',
-            'RGBD/OptimizeMaxError': '2.0',
-            'Mem/NotLinkedNodesKept': 'false',
-            'VisMinInliers': '10',
-            'Odom/ResetCountdown': '1',
-            'Odom/Strategy': '1',
-            'Odom/GuessMotion': 'true',
-            'RGBD/OptimizeFromGraphEnd': 'true',
-            'Mem/RehearsalSimilarity': '0.3',
-            'Rtabmap/TimeThr': '700',
-            'subscribe_odom': 'true',
-            'RGBD/NeighborLinkRefining': 'true'
-        }.items()
+            'subscribe_depth': True,
+            'subscribe_scan': True,
+            'Grid/FromDepth': True,
+            'Grid/RangeMax': 10.0,
+            'use_sim_time': False
+        }],
+        remappings=[
+            ('/map', '/map2'),
+            ('/map_graph', '/map_graph2'),
+            ('/map_data', '/map_data2')
+        ]
     )
 
-    # Rückgabe aller Nodes und beiden RTABMap-Instanzen
-    return LaunchDescription(tf_nodes_1 + tf_nodes_2 + [rtabmap1, rtabmap2])
+    rviz_node = Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        output='screen'
+    )
 
+    return LaunchDescription(
+        tf_nodes_1 + tf_nodes_2 +
+        [icp_odom_1, icp_odom_2, rtabmap_1, rtabmap_2, rviz_node]
+    )
